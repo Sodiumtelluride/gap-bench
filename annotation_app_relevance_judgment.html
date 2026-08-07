@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gap Bench — relevance annotation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EFF2F0;
+    --panel: #FFFFFF;
+    --ink: #14201C;
+    --muted: #5B665F;
+    --faint: #93A29A;
+    --line: #D7DED9;
+    --line-soft: #E6EAE7;
+    --teal: #0E6B64;
+    --teal-ink: #08423D;
+    --teal-tint: #E3F1EF;
+    --brick: #A23E2E;
+    --brick-tint: #F7E9E5;
+    --amber: #E8A33D;
+    --amber-tint: rgba(232, 163, 61, 0.32);
+    --amber-tint-strong: rgba(232, 163, 61, 0.55);
+    --shadow: 0 1px 2px rgba(20, 32, 28, 0.04), 0 6px 20px rgba(20, 32, 28, 0.05);
+    --radius: 10px;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  button {
+    font-family: var(--sans);
+    cursor: pointer;
+  }
+
+  ::selection { background: var(--amber-tint-strong); }
+
+  /* ---------- Top bar ---------- */
+
+  header.topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-right: 4px;
+  }
+
+  .brand .mark {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--teal);
+    transform: rotate(45deg);
+    flex: none;
+  }
+
+  .brand h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .brand .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .divider-v {
+    width: 1px;
+    align-self: stretch;
+    background: var(--line);
+    margin: 2px 0;
+  }
+
+  .filegroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .file-btn {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 7px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .file-btn:hover { border-color: var(--teal); background: var(--teal-tint); }
+  .file-btn.loaded { border-color: var(--teal); color: var(--teal-ink); background: var(--teal-tint); }
+  .file-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .file-btn:disabled:hover { border-color: var(--line); background: var(--panel); }
+
+  .file-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  select#fieldSelect {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+  }
+
+  .spacer { flex: 1; }
+
+  .annotator-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .annotator-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .annotator-input {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    width: 168px;
+  }
+  .annotator-input:focus { outline: none; border-color: var(--teal); }
+
+  .agreement-stat {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--line-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .agreement-stat.high { color: var(--teal-ink); background: var(--teal-tint); }
+  .agreement-stat.mid { color: #8A6A1E; background: rgba(232, 163, 61, 0.22); }
+  .agreement-stat.low { color: var(--brick); background: var(--brick-tint); }
+
+  .save-btn {
+    border: none;
+    background: var(--teal);
+    color: white;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 7px;
+    box-shadow: var(--shadow);
+    transition: background .15s ease, transform .05s ease;
+  }
+  .save-btn:hover { background: var(--teal-ink); }
+  .save-btn:active { transform: translateY(1px); }
+  .save-btn:disabled { background: var(--line); color: var(--faint); box-shadow: none; cursor: not-allowed; }
+
+  .toast {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--ink);
+    color: white;
+    font-size: 12.5px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Empty state ---------- */
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .empty-card {
+    max-width: 460px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-card .mark-big {
+    width: 22px; height: 22px; margin: 0 auto 18px;
+    background: var(--teal); border-radius: 5px; transform: rotate(45deg);
+  }
+  .empty-card h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .empty-card p { font-size: 13.5px; line-height: 1.6; margin: 0 0 4px; }
+
+  /* ---------- Main workbench ---------- */
+
+  main.workbench {
+    flex: 1;
+    display: none;
+    min-height: 0;
+  }
+  main.workbench.active { display: flex; }
+
+  .reading-pane {
+    flex: 1 1 62%;
+    overflow-y: auto;
+    padding: 28px 40px 60px;
+  }
+
+  .sidebar {
+    flex: 0 0 380px;
+    max-width: 380px;
+    border-left: 1px solid var(--line);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* ---------- Need ticket ---------- */
+
+  .need-ticket {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+  .need-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .need-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .need-source-id {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .need-text {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .need-target {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .need-target b { color: var(--ink); font-weight: 600; }
+
+  details.raw-quote {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  details.raw-quote summary {
+    cursor: pointer;
+    color: var(--teal-ink);
+    font-weight: 500;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  details.raw-quote .rq-body {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--line-soft);
+    border-radius: 6px;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  /* ---------- Article ---------- */
+
+  .article-title {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 21px;
+    line-height: 1.35;
+    margin: 0 0 4px;
+  }
+  .article-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    margin-bottom: 18px;
+  }
+  .article-abstract {
+    font-family: var(--serif);
+    font-size: 15.5px;
+    line-height: 1.75;
+    color: #26332D;
+  }
+  .article-abstract mark.evidence {
+    background: var(--amber-tint);
+    color: inherit;
+    border-radius: 3px;
+    padding: 0 1px;
+    box-shadow: inset 0 -1.5px 0 var(--amber);
+  }
+  .article-missing {
+    font-size: 13.5px;
+    color: var(--brick);
+    background: var(--brick-tint);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--sans);
+  }
+
+  /* ---------- Sidebar sections ---------- */
+
+  .side-section {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .side-heading {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+
+  .score-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .score-chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--line-soft);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--ink);
+  }
+  .score-chip .k { color: var(--muted); margin-right: 5px; }
+
+  .judge-card {
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 14px 15px;
+  }
+  .judge-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .judge-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .judge-badge.yes { background: var(--teal-tint); color: var(--teal-ink); }
+  .judge-badge.no { background: var(--brick-tint); color: var(--brick); }
+  .judge-badge.unclear { background: var(--line-soft); color: var(--muted); }
+  .judge-evidence {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #3A463F;
+    background: var(--amber-tint);
+    border-radius: 6px;
+    padding: 9px 11px;
+    box-shadow: inset 2px 0 0 var(--amber);
+  }
+  .judge-warn {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--brick);
+    font-family: var(--sans);
+  }
+  .judge-empty {
+    font-size: 12.5px;
+    color: var(--faint);
+    font-style: italic;
+  }
+
+  .human-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .human-btn {
+    flex: 1;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 12px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all .12s ease;
+  }
+  .human-btn .key {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--faint);
+  }
+  .human-btn:hover { border-color: var(--faint); }
+  .human-btn.relevant.active {
+    background: var(--teal); border-color: var(--teal); color: white;
+  }
+  .human-btn.relevant.active .key { color: rgba(255,255,255,0.75); }
+  .human-btn.not_relevant.active {
+    background: var(--brick); border-color: var(--brick); color: white;
+  }
+  .human-btn.not_relevant.active .key { color: rgba(255,255,255,0.75); }
+
+  .human-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .human-meta button.clear-link {
+    border: none;
+    background: none;
+    color: var(--faint);
+    text-decoration: underline;
+    font-family: var(--sans);
+    font-size: 11px;
+    padding: 0;
+  }
+  .human-meta button.clear-link:hover { color: var(--brick); }
+
+  /* ---------- Nav / footer ---------- */
+
+  .side-nav {
+    margin-top: auto;
+    padding: 18px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .progress-track {
+    height: 5px;
+    background: var(--line-soft);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 999px;
+    transition: width .2s ease;
+  }
+  .progress-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .nav-row {
+    display: flex;
+    gap: 8px;
+  }
+  .nav-btn {
+    flex: 1;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 7px;
+    padding: 9px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .nav-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-ink); }
+  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .nav-btn.unannotated {
+    background: var(--teal-tint);
+    border-color: var(--teal);
+    color: var(--teal-ink);
+  }
+
+  .hint {
+    font-size: 10.5px;
+    color: var(--faint);
+    font-family: var(--mono);
+    text-align: center;
+  }
+
+  footer.statusbar {
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    padding: 8px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    display: none;
+    align-items: center;
+    gap: 18px;
+  }
+  footer.statusbar.active { display: flex; }
+  footer.statusbar .dot { color: var(--line); }
+  footer.statusbar .fallback-link {
+    margin-left: auto;
+    color: var(--teal-ink);
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  @media (max-width: 860px) {
+    main.workbench.active { flex-direction: column; }
+    .sidebar { flex: none; max-width: none; border-left: none; border-top: 1px solid var(--line); }
+    .reading-pane { padding: 22px; }
+    .resize-handle { display: none; }
+  }
+
+  /* ---------- Resize handle ---------- */
+
+  .resize-handle {
+    flex: none;
+    width: 9px;
+    margin: 0 -4px;
+    cursor: col-resize;
+    position: relative;
+    z-index: 6;
+  }
+  .resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 2px;
+    background: var(--line);
+    transition: background .12s ease;
+  }
+  .resize-handle:hover::after,
+  .resize-handle.dragging::after {
+    background: var(--teal);
+  }
+
+  /* ---------- Overview modal ---------- */
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 32, 28, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 30px;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--panel);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 580px;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(20, 32, 28, 0.25);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    flex: none;
+  }
+  .modal-header h2 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .modal-close {
+    border: none;
+    background: none;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--faint);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--line-soft); color: var(--ink); }
+
+  .modal-body {
+    overflow-y: auto;
+    padding: 6px 20px 18px;
+  }
+
+  .need-row {
+    border-bottom: 1px solid var(--line-soft);
+    padding: 12px 0;
+  }
+  .need-row:last-child { border-bottom: none; }
+
+  .need-row-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .need-ordinal {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    flex: none;
+    width: 52px;
+  }
+  .need-row-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .need-row-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal-ink);
+    flex: none;
+    width: 40px;
+    text-align: right;
+  }
+  .need-caret {
+    flex: none;
+    width: 12px;
+    color: var(--faint);
+    font-size: 10px;
+    transition: transform .15s ease;
+  }
+  .need-row.expanded .need-caret { transform: rotate(90deg); }
+
+  .need-progress-track {
+    height: 6px;
+    background: var(--line-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 7px;
+    margin-left: 62px;
+  }
+  .need-progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 999px;
+    transition: width .2s ease;
+  }
+
+  .cube-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-left: 62px;
+  }
+  .cube {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: var(--line-soft);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: transform .08s ease, outline .1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--faint);
+  }
+  .cube:hover { transform: translateY(-1px); outline: 2px solid var(--teal); outline-offset: 1px; }
+  .cube.annotated {
+    background: #CFEAE4;
+    border-color: var(--teal);
+    color: var(--teal-ink);
+  }
+  .cube.relevant {
+    background: #CFEAE4;
+    border-color: var(--teal);
+    color: var(--teal-ink);
+  }
+  .cube.not-relevant {
+    background: var(--brick-tint);
+    border-color: var(--brick);
+    color: var(--brick);
+  }
+  .cube.llm-yes {
+    background: rgba(14, 107, 100, 0.13);
+    border-color: rgba(14, 107, 100, 0.32);
+  }
+  .cube.llm-no {
+    background: rgba(162, 62, 46, 0.13);
+    border-color: rgba(162, 62, 46, 0.32);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"></span>
+    <h1>Gap Bench</h1>
+    <span class="sub">relevance annotation</span>
+  </div>
+
+  <div class="divider-v"></div>
+
+  <div class="filegroup">
+    <button class="file-btn" id="loadResultsBtn" type="button">Open results file…</button>
+    <span class="file-status" id="resultsStatus">no file loaded</span>
+  </div>
+
+  <div class="filegroup">
+    <button class="file-btn" id="loadArticlesBtn" type="button">Open articles file…</button>
+    <span class="file-status" id="articlesStatus">no file loaded</span>
+  </div>
+
+  <div class="divider-v"></div>
+
+  <select id="fieldSelect" disabled>
+    <option>candidate field…</option>
+  </select>
+
+  <div class="divider-v"></div>
+
+  <div class="annotator-group">
+    <label for="annotatorInput" class="annotator-label">Annotator</label>
+    <input type="text" id="annotatorInput" list="annotatorList" class="annotator-input"
+           placeholder="e.g. alice (default: human)" autocomplete="off">
+    <datalist id="annotatorList"></datalist>
+  </div>
+
+  <div class="spacer"></div>
+
+  <span class="agreement-stat" id="agreementStat">Agreement: —</span>
+
+  <button class="file-btn" id="overviewBtn" type="button" disabled>Progress overview</button>
+
+  <button class="save-btn" id="saveBtn" disabled type="button">Save annotations</button>
+
+  <input type="file" id="resultsFileInput" accept="application/json,.json" style="display:none">
+  <input type="file" id="articlesFileInput" accept=".jsonl,.json,text/plain" style="display:none">
+</header>
+
+<div class="empty-state" id="emptyState">
+  <div class="empty-card">
+    <div class="mark-big"></div>
+    <h2>Load a results file to begin</h2>
+    <p>Open the judged results JSON (from the retrieve-rerank pipeline / LLM judge) and the matching articles JSONL file.</p>
+    <p>Each research need will show its candidate article, retrieval scores, and the LLM judge's answer — you decide if the match is relevant.</p>
+  </div>
+</div>
+
+<main class="workbench" id="workbench">
+  <section class="reading-pane" id="readingPane">
+    <div class="need-ticket">
+      <div class="need-label-row">
+        <span class="need-label">Research need</span>
+        <span class="need-source-id" id="needSourceId"></span>
+      </div>
+      <p class="need-text" id="needText"></p>
+      <div class="need-target" id="needTarget"></div>
+      <details class="raw-quote" id="rawQuoteWrap">
+        <summary>Original passage this gap was extracted from</summary>
+        <div class="rq-body" id="rawQuoteText"></div>
+      </details>
+    </div>
+
+    <h2 class="article-title" id="articleTitle"></h2>
+    <div class="article-meta" id="articleMeta"></div>
+    <div id="articleBody"></div>
+  </section>
+
+  <div class="resize-handle" id="resizeHandle" title="Drag to resize"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="side-section">
+      <p class="side-heading">Retrieval scores</p>
+      <div class="score-grid" id="scoreGrid"></div>
+    </div>
+
+    <div class="side-section">
+      <p class="side-heading">LLM judge</p>
+      <div id="judgeCard"></div>
+    </div>
+
+    <div class="side-section">
+      <p class="side-heading" id="humanSectionHeadingWrap">Your judgment — <span id="humanSectionHeading">human</span></p>
+      <div class="human-buttons">
+        <button class="human-btn relevant" id="btnRelevant" type="button">
+          <span>Relevant</span>
+          <span class="key">Y</span>
+        </button>
+        <button class="human-btn not_relevant" id="btnNotRelevant" type="button">
+          <span>Not relevant</span>
+          <span class="key">N</span>
+        </button>
+      </div>
+      <div class="human-meta" id="humanMeta"></div>
+    </div>
+
+    <div class="side-nav">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text">
+        <span id="progressText">0 / 0</span>
+        <span id="progressAnnotated">0 annotated</span>
+      </div>
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" type="button">← Prev</button>
+        <button class="nav-btn" id="nextBtn" type="button">Next →</button>
+      </div>
+      <button class="nav-btn unannotated" id="skipUnannotatedBtn" type="button">Jump to next unannotated</button>
+      <div class="hint">← → to navigate · Y relevant · N not relevant · C clear</div>
+    </div>
+  </aside>
+</main>
+
+<footer class="statusbar" id="statusbar">
+  <span id="writeMode"></span>
+  <span class="dot">·</span>
+  <span id="statSummary"></span>
+  <button class="fallback-link" id="downloadFallback" type="button" style="display:none">Download annotated JSON</button>
+</footer>
+
+<div class="modal-overlay" id="overviewOverlay">
+  <div class="modal" id="overviewModal">
+    <div class="modal-header">
+      <h2>Annotation overview</h2>
+      <button class="modal-close" id="overviewCloseBtn" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="overviewBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------- State ----------------
+  let resultsData = null;        // parsed JSON array (query records)
+  let resultsFileHandle = null;  // FileSystemFileHandle, if File System Access API used
+  let resultsFileName = "results.json";
+  let canWriteInPlace = false;
+
+  let corpus = new Map();        // article_id (string) -> {title, abstract}
+
+  let currentField = null;
+  let items = [];                // flattened [{qi, rec, cand}]
+  let currentIndex = 0;
+  let needGroups = new Map();    // qi -> [item indices], in current field
+  let needOrder = [];            // ordered list of qi present in current field
+
+  // ---------------- Elements ----------------
+  const el = (id) => document.getElementById(id);
+
+
+  const loadResultsBtn = el("loadResultsBtn");
+  const resultsStatus = el("resultsStatus");
+  const resultsFileInput = el("resultsFileInput");
+
+  const loadArticlesBtn = el("loadArticlesBtn");
+  const articlesStatus = el("articlesStatus");
+  const articlesFileInput = el("articlesFileInput");
+
+  const fieldSelect = el("fieldSelect");
+  const saveBtn = el("saveBtn");
+  const annotatorInput = el("annotatorInput");
+  const annotatorList = el("annotatorList");
+  const humanSectionHeading = el("humanSectionHeading");
+  const agreementStat = el("agreementStat");
+
+  const emptyState = el("emptyState");
+  const workbench = el("workbench");
+  const statusbar = el("statusbar");
+  const readingPane = el("readingPane");
+  const sidebar = el("sidebar");
+  const resizeHandle = el("resizeHandle");
+
+  const needText = el("needText");
+  const needTarget = el("needTarget");
+  const needSourceId = el("needSourceId");
+  const rawQuoteWrap = el("rawQuoteWrap");
+  const rawQuoteText = el("rawQuoteText");
+
+  const articleTitle = el("articleTitle");
+  const articleMeta = el("articleMeta");
+  const articleBody = el("articleBody");
+
+  const scoreGrid = el("scoreGrid");
+  const judgeCard = el("judgeCard");
+
+  const btnRelevant = el("btnRelevant");
+  const btnNotRelevant = el("btnNotRelevant");
+  const humanMeta = el("humanMeta");
+
+  const progressFill = el("progressFill");
+  const progressText = el("progressText");
+  const progressAnnotated = el("progressAnnotated");
+  const prevBtn = el("prevBtn");
+  const nextBtn = el("nextBtn");
+  const skipUnannotatedBtn = el("skipUnannotatedBtn");
+
+  const writeMode = el("writeMode");
+  const statSummary = el("statSummary");
+  const downloadFallback = el("downloadFallback");
+  const toastEl = el("toast");
+
+  const overviewBtn = el("overviewBtn");
+  const overviewOverlay = el("overviewOverlay");
+  const overviewCloseBtn = el("overviewCloseBtn");
+  const overviewBody = el("overviewBody");
+  const overviewExpanded = new Set(); // qi's currently expanded in the overview modal
+
+  // ---------------- Utilities ----------------
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toastEl.classList.remove("show"), 2600);
+  }
+
+  function humanizeKey(key) {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  let currentAnnotatorKey = "human";
+
+  function getHuman(cand) {
+    return cand.relevance && cand.relevance.human ? cand.relevance.human[currentAnnotatorKey] : undefined;
+  }
+
+  function setHuman(cand, value) {
+    if (!cand.relevance) cand.relevance = {};
+    if (!cand.relevance.human || typeof cand.relevance.human !== "object") cand.relevance.human = {};
+    cand.relevance.human[currentAnnotatorKey] = value;
+  }
+
+  function clearHumanOn(cand) {
+    if (cand.relevance && cand.relevance.human) delete cand.relevance.human[currentAnnotatorKey];
+  }
+
+  // Migrate the old flat shape (relevance.human = {label, annotated_at})
+  // -- written by earlier versions of this app -- into the new
+  // per-annotator shape (relevance.human = {human: {label, annotated_at}}).
+  function migrateHumanFields(records) {
+    for (const rec of records) {
+      for (const key of Object.keys(rec)) {
+        const list = rec[key];
+        if (!Array.isArray(list)) continue;
+        for (const cand of list) {
+          const h = cand && cand.relevance && cand.relevance.human;
+          if (h && typeof h === "object" && "label" in h) {
+            cand.relevance.human = { human: h };
+          }
+        }
+      }
+    }
+  }
+
+  function detectAnnotators(records) {
+    const names = new Set();
+    for (const rec of records) {
+      for (const key of Object.keys(rec)) {
+        const list = rec[key];
+        if (!Array.isArray(list)) continue;
+        for (const cand of list) {
+          const h = cand && cand.relevance && cand.relevance.human;
+          if (h && typeof h === "object") {
+            for (const name of Object.keys(h)) names.add(name);
+          }
+        }
+      }
+    }
+    return [...names].sort();
+  }
+
+  function populateAnnotatorList(records) {
+    const names = detectAnnotators(records);
+    annotatorList.innerHTML = "";
+    for (const name of names) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      annotatorList.appendChild(opt);
+    }
+    if (names.length) {
+      showToast(`Existing annotators found: ${names.join(", ")} — pick one to resume, or type a new name`);
+    }
+  }
+
+  function updateAnnotatorKey() {
+    const val = annotatorInput.value.trim();
+    currentAnnotatorKey = val || "human";
+    if (humanSectionHeading) humanSectionHeading.textContent = currentAnnotatorKey;
+    renderCurrent();
+    updateFooterStats();
+    if (overviewOverlay.classList.contains("show")) renderOverview();
+  }
+
+  function formatScore(v) {
+    if (typeof v === "number") return v.toFixed(4);
+    return String(v);
+  }
+
+  // ---------------- Corpus (articles JSONL) ----------------
+
+  function extractYear(pubDate) {
+    if (!pubDate) return "";
+    const match = String(pubDate).match(/\d{4}/);
+    return match ? match[0] : "";
+  }
+
+  function buildCorpus(text) {
+    const chunksByArticle = new Map();
+    const titles = new Map();
+    const pubDates = new Map();
+
+    const lines = text.split("\n");
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) continue;
+      let rec;
+      try {
+        rec = JSON.parse(line);
+      } catch (e) {
+        continue;
+      }
+      if (rec.field !== "abstract") continue;
+      if (rec.article_id === undefined || rec.article_id === null) continue;
+
+      const aid = String(rec.article_id);
+      if (!chunksByArticle.has(aid)) chunksByArticle.set(aid, []);
+      chunksByArticle.get(aid).push([rec.block_index || 0, rec.text || ""]);
+      if (!titles.has(aid)) titles.set(aid, rec.title || "");
+      if (!pubDates.has(aid)) pubDates.set(aid, rec.pub_date || "");
+    }
+
+    const result = new Map();
+    for (const [aid, chunks] of chunksByArticle) {
+      chunks.sort((a, b) => a[0] - b[0]);
+      const abstract = chunks.map((c) => c[1]).filter(Boolean).join(" ");
+      const pubDate = pubDates.get(aid) || "";
+      result.set(aid, {
+        title: titles.get(aid) || "",
+        abstract,
+        pubDate,
+        year: extractYear(pubDate),
+      });
+    }
+    return result;
+  }
+
+  // ---------------- Results parsing ----------------
+
+  function detectCandidateFields(records) {
+    const counts = {};
+    for (const rec of records) {
+      for (const key of Object.keys(rec)) {
+        const val = rec[key];
+        if (Array.isArray(val) && val.length && typeof val[0] === "object" && val[0] !== null && "article_id" in val[0]) {
+          counts[key] = (counts[key] || 0) + val.length;
+        }
+      }
+    }
+    const preferredOrder = ["combined_results", "results", "bm25_results"];
+    const found = Object.keys(counts);
+    found.sort((a, b) => {
+      const ai = preferredOrder.indexOf(a);
+      const bi = preferredOrder.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    return found;
+  }
+
+  function flattenItems(records, field) {
+    const out = [];
+    records.forEach((rec, qi) => {
+      const list = rec[field];
+      if (!Array.isArray(list)) return;
+      for (const cand of list) {
+        out.push({ qi, rec, cand });
+      }
+    });
+    return out;
+  }
+
+  function rebuildItems() {
+    items = flattenItems(resultsData, currentField);
+    currentIndex = 0;
+    buildNeedGroups();
+    renderCurrent();
+    updateFooterStats();
+  }
+
+  function buildNeedGroups() {
+    needGroups = new Map();
+    items.forEach((it, idx) => {
+      if (!needGroups.has(it.qi)) needGroups.set(it.qi, []);
+      needGroups.get(it.qi).push(idx);
+    });
+    needOrder = [...needGroups.keys()].sort((a, b) => a - b);
+  }
+
+  function truncate(str, n) {
+    str = str || "";
+    return str.length > n ? str.slice(0, n - 1) + "…" : str;
+  }
+
+  // ---------------- Loading: results file ----------------
+
+  async function loadResultsFile() {
+    if (window.showOpenFilePicker) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+        });
+        resultsFileHandle = handle;
+        const file = await handle.getFile();
+        await handleResultsText(await file.text(), file.name, true);
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        console.warn("File System Access API failed, falling back to input.", e);
+      }
+    }
+    resultsFileInput.click();
+  }
+
+  resultsFileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    resultsFileHandle = null;
+    await handleResultsText(await file.text(), file.name, false);
+  });
+
+  async function handleResultsText(text, name, writable) {
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
+      showToast("Could not parse results file as JSON.");
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      showToast("Expected the results file to be a JSON array of query records.");
+      return;
+    }
+
+    resultsData = parsed;
+    resultsFileName = name;
+    canWriteInPlace = writable;
+
+    migrateHumanFields(resultsData);
+    populateAnnotatorList(resultsData);
+    currentAnnotatorKey = annotatorInput.value.trim() || "human";
+    if (humanSectionHeading) humanSectionHeading.textContent = currentAnnotatorKey;
+
+    resultsStatus.textContent = name;
+    resultsStatus.title = name;
+    loadResultsBtn.classList.add("loaded");
+
+    const fields = detectCandidateFields(resultsData);
+    fieldSelect.innerHTML = "";
+    if (fields.length === 0) {
+      fieldSelect.innerHTML = '<option value="">no candidate lists found</option>';
+      fieldSelect.disabled = true;
+      showToast("No candidate-list fields (e.g. results / bm25_results / combined_results) found.");
+      return;
+    }
+    for (const f of fields) {
+      const opt = document.createElement("option");
+      opt.value = f;
+      opt.textContent = `${f}  (${resultsData.reduce((n, r) => n + ((r[f] || []).length), 0)} candidates)`;
+      fieldSelect.appendChild(opt);
+    }
+    fieldSelect.disabled = false;
+    currentField = fields[0];
+    fieldSelect.value = currentField;
+
+    saveBtn.disabled = false;
+    overviewBtn.disabled = false;
+    writeMode.textContent = canWriteInPlace
+      ? "Direct file save enabled"
+      : "Browser will download the annotated file — replace the original manually";
+    downloadFallback.style.display = canWriteInPlace ? "none" : "inline";
+
+    activateWorkbench();
+    rebuildItems();
+  }
+
+  fieldSelect.addEventListener("change", () => {
+    currentField = fieldSelect.value;
+    rebuildItems();
+  });
+
+  annotatorInput.addEventListener("change", updateAnnotatorKey);
+  annotatorInput.addEventListener("blur", updateAnnotatorKey);
+
+  // ---------------- Loading: articles file ----------------
+
+  loadArticlesBtn.addEventListener("click", () => articlesFileInput.click());
+
+  articlesFileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    corpus = buildCorpus(text);
+    articlesStatus.textContent = `${file.name} (${corpus.size} articles)`;
+    articlesStatus.title = file.name;
+    loadArticlesBtn.classList.add("loaded");
+    renderCurrent();
+  });
+
+  function activateWorkbench() {
+    emptyState.style.display = "none";
+    workbench.classList.add("active");
+    statusbar.classList.add("active");
+  }
+
+  // ---------------- Sidebar resize ----------------
+
+  (function setupSidebarResize() {
+    let dragging = false;
+
+    function clamp(width) {
+      const workbenchWidth = workbench.getBoundingClientRect().width;
+      const min = 320;
+      const max = Math.max(min, Math.min(760, workbenchWidth - 360)); // keep reading pane usable
+      return Math.max(min, Math.min(max, width));
+    }
+
+    resizeHandle.addEventListener("mousedown", (e) => {
+      dragging = true;
+      resizeHandle.classList.add("dragging");
+      document.body.style.userSelect = "none";
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const workbenchRect = workbench.getBoundingClientRect();
+      const width = clamp(workbenchRect.right - e.clientX);
+      sidebar.style.flexBasis = width + "px";
+      sidebar.style.maxWidth = width + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      resizeHandle.classList.remove("dragging");
+      document.body.style.userSelect = "";
+    });
+  })();
+
+  // ---------------- Rendering ----------------
+
+  function highlightEvidence(abstract, evidence) {
+    if (!evidence) return escapeHtml(abstract);
+    const idx = abstract.indexOf(evidence);
+    if (idx === -1) return escapeHtml(abstract);
+    const before = abstract.slice(0, idx);
+    const match = abstract.slice(idx, idx + evidence.length);
+    const after = abstract.slice(idx + evidence.length);
+    return escapeHtml(before) + '<mark class="evidence">' + escapeHtml(match) + "</mark>" + escapeHtml(after);
+  }
+
+  function renderCurrent() {
+    if (!items.length) {
+      needText.textContent = "";
+      needTarget.textContent = "";
+      needSourceId.textContent = "";
+      rawQuoteWrap.style.display = "none";
+      articleTitle.textContent = "";
+      articleMeta.textContent = "";
+      articleBody.innerHTML = "";
+      scoreGrid.innerHTML = "";
+      judgeCard.innerHTML = "";
+      progressText.textContent = "0 / 0";
+      return;
+    }
+
+    const item = items[currentIndex];
+    const rec = item.rec;
+    const cand = item.cand;
+
+    // Need ticket
+    needText.textContent = rec.query || "";
+    if (rec.source_article_id) {
+      const sourceArticle = corpus.get(String(rec.source_article_id));
+      const dateSuffix = sourceArticle && sourceArticle.pubDate ? ` (${sourceArticle.pubDate})` : "";
+      needSourceId.textContent = `from article ${rec.source_article_id}${dateSuffix}`;
+    } else {
+      needSourceId.textContent = "";
+    }
+    if (rec.target) {
+      needTarget.innerHTML = "<b>Target:</b> " + escapeHtml(rec.target);
+      needTarget.style.display = "block";
+    } else {
+      needTarget.style.display = "none";
+    }
+    if (rec.raw_quote) {
+      rawQuoteWrap.style.display = "block";
+      rawQuoteText.textContent = rec.raw_quote;
+    } else {
+      rawQuoteWrap.style.display = "none";
+    }
+
+    // Article
+    const aid = String(cand.article_id);
+    const article = corpus.get(aid);
+    articleMeta.textContent = `article_id: ${aid}` + (article && article.pubDate ? ` · ${article.pubDate}` : "");
+
+    if (article) {
+      articleTitle.textContent = article.title || "(untitled)";
+      const evidence = cand.relevance ? cand.relevance.evidence : null;
+      articleBody.innerHTML = `<div class="article-abstract">${highlightEvidence(article.abstract, evidence)}</div>`;
+    } else {
+      articleTitle.textContent = "(article not found)";
+      articleBody.innerHTML = `<div class="article-missing">No matching article_id in the loaded articles file. Load the articles JSONL used to build this corpus to see the title and abstract.</div>`;
+    }
+
+    // Scores
+    scoreGrid.innerHTML = "";
+    const skipKeys = new Set(["article_id", "relevance", "human"]);
+    let hasScore = false;
+    for (const [k, v] of Object.entries(cand)) {
+      if (skipKeys.has(k)) continue;
+      if (typeof v !== "number") continue;
+      hasScore = true;
+      const chip = document.createElement("span");
+      chip.className = "score-chip";
+      chip.innerHTML = `<span class="k">${escapeHtml(humanizeKey(k))}</span>${formatScore(v)}`;
+      scoreGrid.appendChild(chip);
+    }
+    if (!hasScore) {
+      scoreGrid.innerHTML = '<span class="judge-empty">No numeric scores on this candidate.</span>';
+    }
+
+    // LLM judge
+    if (cand.relevance) {
+      const label = cand.relevance.judgment || "unclear";
+      const evidence = cand.relevance.evidence || "";
+      const verbatimWarn = cand.relevance.verbatim === false
+        ? '<div class="judge-warn">⚠ evidence text was not found verbatim in the abstract</div>' : "";
+      judgeCard.innerHTML = `
+        <div class="judge-card">
+          <div class="judge-label-row">
+            <span class="judge-badge ${escapeHtml(label)}">${escapeHtml(label)}</span>
+          </div>
+          ${evidence ? `<div class="judge-evidence">&ldquo;${escapeHtml(evidence)}&rdquo;</div>` : '<div class="judge-empty">No evidence text provided.</div>'}
+          ${verbatimWarn}
+        </div>`;
+    } else {
+      judgeCard.innerHTML = '<div class="judge-empty">Not yet judged by the LLM.</div>';
+    }
+
+    // Human buttons
+    const humanLabel = getHuman(cand) ? getHuman(cand).label : null;
+    btnRelevant.classList.toggle("active", humanLabel === "relevant");
+    btnNotRelevant.classList.toggle("active", humanLabel === "not_relevant");
+
+    const human = getHuman(cand);
+    if (human) {
+      const when = human.annotated_at ? new Date(human.annotated_at).toLocaleString() : "";
+      humanMeta.innerHTML = `<span>annotated ${escapeHtml(when)}</span><button class="clear-link" id="clearHumanBtn" type="button">clear</button>`;
+      const clearBtn = el("clearHumanBtn");
+      if (clearBtn) clearBtn.addEventListener("click", clearHuman);
+    } else {
+      humanMeta.innerHTML = '<span>not yet annotated</span>';
+    }
+
+    // Progress
+    progressText.textContent = `${currentIndex + 1} / ${items.length}`;
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === items.length - 1;
+
+    updateFooterStats();
+  }
+
+  function updateFooterStats() {
+    let annotated = 0, relevant = 0, notRelevant = 0;
+    for (const it of items) {
+      const human = getHuman(it.cand);
+      if (human) {
+        annotated++;
+        if (human.label === "relevant") relevant++;
+        else if (human.label === "not_relevant") notRelevant++;
+      }
+    }
+    const total = items.length;
+    progressFill.style.width = total ? `${(annotated / total) * 100}%` : "0%";
+    progressAnnotated.textContent = `${annotated} annotated`;
+    statSummary.textContent = `${annotated}/${total} annotated · ${relevant} relevant · ${notRelevant} not relevant`;
+    updateAgreementStat();
+  }
+
+  // Fraction of the current annotator's judgments (that also have an LLM
+  // judgment to compare against) where the two agree.
+  // relevant <-> "yes", not_relevant <-> "no". LLM "unclear" or missing
+  // judgments are excluded from both numerator and denominator.
+  function updateAgreementStat() {
+    let comparable = 0, agree = 0;
+    for (const it of items) {
+      const human = getHuman(it.cand);
+      if (!human) continue;
+      const judgment = it.cand.relevance ? it.cand.relevance.judgment : undefined;
+      if (judgment !== "yes" && judgment !== "no") continue;
+      comparable++;
+      const humanSaysYes = human.label === "relevant";
+      const llmSaysYes = judgment === "yes";
+      if (humanSaysYes === llmSaysYes) agree++;
+    }
+
+    agreementStat.classList.remove("high", "mid", "low");
+    if (comparable === 0) {
+      agreementStat.textContent = "Agreement: —";
+      return;
+    }
+    const pct = Math.round((agree / comparable) * 100);
+    agreementStat.textContent = `Agreement: ${agree}/${comparable} (${pct}%)`;
+    if (pct >= 80) agreementStat.classList.add("high");
+    else if (pct >= 50) agreementStat.classList.add("mid");
+    else agreementStat.classList.add("low");
+  }
+
+  // ---------------- Human annotation actions ----------------
+
+  function setHumanLabel(label) {
+    if (!items.length) return;
+    const item = items[currentIndex];
+    setHuman(item.cand, { label, annotated_at: new Date().toISOString() });
+    renderCurrent();
+    if (currentIndex < items.length - 1) {
+      setTimeout(() => goTo(currentIndex + 1), 120);
+    }
+  }
+
+  function clearHuman() {
+    if (!items.length) return;
+    clearHumanOn(items[currentIndex].cand);
+    renderCurrent();
+  }
+
+  btnRelevant.addEventListener("click", () => setHumanLabel("relevant"));
+  btnNotRelevant.addEventListener("click", () => setHumanLabel("not_relevant"));
+
+  // ---------------- Progress overview modal ----------------
+
+  function computeNeedStats(qi) {
+    const indices = needGroups.get(qi) || [];
+    const total = indices.length;
+    const annotated = indices.filter((idx) => getHuman(items[idx].cand)).length;
+    const percent = total ? Math.round((annotated / total) * 100) : 0;
+    return { total, annotated, percent };
+  }
+
+  function renderOverview() {
+    overviewBody.innerHTML = "";
+    needOrder.forEach((qi, pos) => {
+      const { total, annotated, percent } = computeNeedStats(qi);
+      const queryText = resultsData[qi] ? resultsData[qi].query : "";
+      const expanded = overviewExpanded.has(qi);
+
+      const row = document.createElement("div");
+      row.className = "need-row" + (expanded ? " expanded" : "");
+      row.dataset.qi = String(qi);
+
+      row.innerHTML = `
+        <div class="need-row-top">
+          <span class="need-caret">▸</span>
+          <span class="need-ordinal">${pos + 1} / ${needOrder.length}</span>
+          <span class="need-row-text" title="${escapeHtml(queryText)}">${escapeHtml(queryText)}</span>
+          <span class="need-row-pct">${percent}%</span>
+        </div>
+        <div class="need-progress-track"><div class="need-progress-fill" style="width:${percent}%"></div></div>
+      `;
+
+      if (expanded) {
+        const grid = document.createElement("div");
+        grid.className = "cube-grid";
+        const indices = needGroups.get(qi) || [];
+        indices.forEach((idx, localPos) => {
+          const cand = items[idx].cand;
+          const human = getHuman(cand);
+          const judgment = cand.relevance ? cand.relevance.judgment : undefined;
+          const cube = document.createElement("div");
+          let cubeClass = "cube";
+          let titleText;
+          if (human) {
+            cubeClass += human.label === "relevant" ? " relevant" : " not-relevant";
+            titleText = `${cand.article_id} — ${human.label}`;
+          } else {
+            if (judgment === "yes") cubeClass += " llm-yes";
+            else if (judgment === "no") cubeClass += " llm-no";
+            titleText = `${cand.article_id} — not yet annotated` + (judgment ? ` (LLM: ${judgment})` : "");
+          }
+          cube.className = cubeClass;
+          cube.textContent = String(localPos + 1);
+          cube.dataset.itemIndex = String(idx);
+          cube.title = titleText;
+          grid.appendChild(cube);
+        });
+        row.appendChild(grid);
+      }
+
+      overviewBody.appendChild(row);
+    });
+  }
+
+  function openOverview() {
+    if (!items.length) {
+      showToast("Load a results file first.");
+      return;
+    }
+    renderOverview();
+    overviewOverlay.classList.add("show");
+  }
+
+  function closeOverview() {
+    overviewOverlay.classList.remove("show");
+  }
+
+  overviewBtn.addEventListener("click", openOverview);
+  overviewCloseBtn.addEventListener("click", closeOverview);
+  overviewOverlay.addEventListener("click", (e) => {
+    if (e.target === overviewOverlay) closeOverview();
+  });
+
+  overviewBody.addEventListener("click", (e) => {
+    const cube = e.target.closest(".cube");
+    if (cube) {
+      goTo(Number(cube.dataset.itemIndex));
+      closeOverview();
+      return;
+    }
+    const rowTop = e.target.closest(".need-row-top");
+    if (rowTop) {
+      const qi = Number(rowTop.closest(".need-row").dataset.qi);
+      if (overviewExpanded.has(qi)) overviewExpanded.delete(qi);
+      else overviewExpanded.add(qi);
+      renderOverview();
+    }
+  });
+
+  // ---------------- Navigation ----------------
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= items.length) return;
+    currentIndex = idx;
+    renderCurrent();
+  }
+
+  prevBtn.addEventListener("click", () => goTo(currentIndex - 1));
+  nextBtn.addEventListener("click", () => goTo(currentIndex + 1));
+
+  skipUnannotatedBtn.addEventListener("click", () => {
+    for (let i = currentIndex + 1; i < items.length; i++) {
+      if (!getHuman(items[i].cand)) { goTo(i); return; }
+    }
+    for (let i = 0; i < items.length; i++) {
+      if (!getHuman(items[i].cand)) { goTo(i); return; }
+    }
+    showToast("All candidates in this field are annotated.");
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (overviewOverlay.classList.contains("show")) {
+      if (e.key === "Escape") closeOverview();
+      return;
+    }
+    if (!items.length) return;
+    const key = e.key.toLowerCase();
+    if (key === "arrowright") { goTo(currentIndex + 1); }
+    else if (key === "arrowleft") { goTo(currentIndex - 1); }
+    else if (key === "y") { setHumanLabel("relevant"); }
+    else if (key === "n") { setHumanLabel("not_relevant"); }
+    else if (key === "c") { clearHuman(); }
+  });
+
+  // ---------------- Save ----------------
+
+  async function saveResults() {
+    if (!resultsData) return;
+    const json = JSON.stringify(resultsData, null, 2);
+
+    if (canWriteInPlace && resultsFileHandle) {
+      try {
+        const writable = await resultsFileHandle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        showToast(`Saved to ${resultsFileName}`);
+        return;
+      } catch (err) {
+        console.error(err);
+        showToast("Could not write to the file directly — downloading instead.");
+      }
+    }
+    downloadJson(json);
+  }
+
+  function downloadJson(json) {
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const base = resultsFileName.replace(/\.json$/i, "");
+    a.href = url;
+    a.download = `${base}.annotated.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded annotated JSON");
+  }
+
+  saveBtn.addEventListener("click", saveResults);
+  downloadFallback.addEventListener("click", () => {
+    if (!resultsData) return;
+    downloadJson(JSON.stringify(resultsData, null, 2));
+  });
+
+  loadResultsBtn.addEventListener("click", loadResultsFile);
+})();
+</script>
+</body>
+</html>
