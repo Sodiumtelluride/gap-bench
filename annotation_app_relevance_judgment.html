@@ -763,6 +763,7 @@
     font-weight: 600;
     color: var(--faint);
   }
+  .cube.current { border-width: 2px; }
   .cube:hover { transform: translateY(-1px); outline: 2px solid var(--teal); outline-offset: 1px; }
   .cube.annotated {
     background: #CFEAE4;
@@ -1417,7 +1418,11 @@
     // Article
     const aid = String(cand.article_id);
     const article = corpus.get(aid);
-    articleMeta.textContent = `article_id: ${aid}` + (article && article.pubDate ? ` · ${article.pubDate}` : "");
+    const groupIndices = needGroups.get(item.qi) || [];
+    const rankInNeed = groupIndices.indexOf(currentIndex) + 1;
+    articleMeta.textContent = `article_id: ${aid}`
+      + (article && article.pubDate ? ` · ${article.pubDate}` : "")
+      + (rankInNeed ? ` · ranking: ${rankInNeed} / ${groupIndices.length}` : "");
 
     if (article) {
       articleTitle.textContent = article.title || "(untitled)";
@@ -1602,6 +1607,10 @@
             if (judgment === "yes") cubeClass += " llm-yes";
             else if (judgment === "no") cubeClass += " llm-no";
             titleText = `${cand.article_id} — not yet annotated` + (judgment ? ` (LLM: ${judgment})` : "");
+          }
+          if (idx === currentIndex) {
+            cubeClass += " current";
+            titleText += " · current";
           }
           cube.className = cubeClass;
           cube.textContent = String(localPos + 1);
