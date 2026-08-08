@@ -357,6 +357,25 @@
     color: var(--faint);
     margin-bottom: 18px;
   }
+  .cites-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    vertical-align: 1px;
+  }
+  .cites-badge.yes {
+    background: var(--teal-tint);
+    color: var(--teal-ink);
+    box-shadow: inset 0 0 0 1px var(--teal);
+  }
+  .cites-badge.no {
+    background: transparent;
+    color: var(--faint);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
   .article-abstract {
     font-family: var(--serif);
     font-size: 15.5px;
@@ -763,6 +782,7 @@
     font-weight: 600;
     color: var(--faint);
   }
+  .cube.current { border-width: 2px; }
   .cube:hover { transform: translateY(-1px); outline: 2px solid var(--teal); outline-offset: 1px; }
   .cube.annotated {
     background: #CFEAE4;
@@ -1116,10 +1136,19 @@
     return match ? match[0] : "";
   }
 
+  function findIfArticleAIsCitedInArticleB(aidA, aidB) {
+    const keyA = String(aidA);
+    const recA = corpus.get(keyA);
+    const recB = corpus.get(String(aidB));
+    if (!recA || !recB) return false;
+    return Array.isArray(recB.references) && recB.references.includes(keyA);
+  }
+
   function buildCorpus(text) {
     const chunksByArticle = new Map();
     const titles = new Map();
     const pubDates = new Map();
+    const references = new Map();
 
     const lines = text.split("\n");
     for (const raw of lines) {
@@ -1138,6 +1167,9 @@
       if (!chunksByArticle.has(aid)) chunksByArticle.set(aid, []);
       chunksByArticle.get(aid).push([rec.block_index || 0, rec.text || ""]);
       if (!titles.has(aid)) titles.set(aid, rec.title || "");
+      if (!references.has(aid) && Array.isArray(rec.references)) {
+        references.set(aid, rec.references.map(String));
+      }
       if (!pubDates.has(aid)) pubDates.set(aid, rec.pub_date || "");
     }
 
@@ -1151,6 +1183,7 @@
         abstract,
         pubDate,
         year: extractYear(pubDate),
+        references: references.get(aid) || [],
       });
     }
     return result;
@@ -1417,7 +1450,21 @@
     // Article
     const aid = String(cand.article_id);
     const article = corpus.get(aid);
-    articleMeta.textContent = `article_id: ${aid}` + (article && article.pubDate ? ` · ${article.pubDate}` : "");
+    const groupIndices = needGroups.get(item.qi) || [];
+    const rankInNeed = groupIndices.indexOf(currentIndex) + 1;
+    const metaText = `article_id: ${aid}`
+      + (article && article.pubDate ? ` · ${article.pubDate}` : "")
+      + (rankInNeed ? ` · ranking: ${rankInNeed} / ${groupIndices.length}` : "");
+
+    // Does this candidate article cite the article the query came from?
+    let citesBadge = "";
+    if (rec.source_article_id && article) {
+      const cites = findIfArticleAIsCitedInArticleB(rec.source_article_id, aid);
+      citesBadge = cites
+        ? ' <span class="cites-badge yes">cites source article</span>'
+        : ' <span class="cites-badge no">does not cite source article</span>';
+    }
+    articleMeta.innerHTML = escapeHtml(metaText) + citesBadge;
 
     if (article) {
       articleTitle.textContent = article.title || "(untitled)";
@@ -1602,6 +1649,10 @@
             if (judgment === "yes") cubeClass += " llm-yes";
             else if (judgment === "no") cubeClass += " llm-no";
             titleText = `${cand.article_id} — not yet annotated` + (judgment ? ` (LLM: ${judgment})` : "");
+          }
+          if (idx === currentIndex) {
+            cubeClass += " current";
+            titleText += " · current";
           }
           cube.className = cubeClass;
           cube.textContent = String(localPos + 1);
