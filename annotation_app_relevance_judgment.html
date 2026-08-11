@@ -317,6 +317,56 @@
   }
   .need-target b { color: var(--ink); font-weight: 600; }
 
+  /* ---------- Entity pills ---------- */
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .pill-row-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-right: 2px;
+  }
+  .pill {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    line-height: 1.35;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pill.entity {
+    background: var(--line-soft);
+    color: var(--muted);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .pill.exact {
+    background: var(--teal-tint);
+    color: var(--teal-ink);
+    box-shadow: inset 0 0 0 1px var(--teal);
+    font-weight: 500;
+  }
+  .pill.knn {
+    background: transparent;
+    color: var(--teal-ink);
+    box-shadow: inset 0 0 0 1px var(--teal);
+    opacity: 0.72;
+  }
+  .pill-none {
+    font-size: 11.5px;
+    color: var(--faint);
+    font-style: italic;
+  }
+
   details.raw-quote {
     margin-top: 10px;
     font-size: 12px;
@@ -355,8 +405,9 @@
     font-family: var(--mono);
     font-size: 11px;
     color: var(--faint);
-    margin-bottom: 18px;
+    margin-bottom: 4px;
   }
+  #articleBody { margin-top: 18px; }
   .cites-badge {
     display: inline-block;
     margin-left: 6px;
@@ -879,10 +930,13 @@
         <summary>Original passage this gap was extracted from</summary>
         <div class="rq-body" id="rawQuoteText"></div>
       </details>
+      <div class="pill-row" id="needEntities"></div>
     </div>
 
     <h2 class="article-title" id="articleTitle"></h2>
     <div class="article-meta" id="articleMeta"></div>
+    <div class="pill-row" id="exactSharedEntities"></div>
+    <div class="pill-row" id="knnSharedEntities"></div>
     <div id="articleBody"></div>
   </section>
 
@@ -999,8 +1053,12 @@
   const rawQuoteWrap = el("rawQuoteWrap");
   const rawQuoteText = el("rawQuoteText");
 
+  const needEntities = el("needEntities");
+
   const articleTitle = el("articleTitle");
   const articleMeta = el("articleMeta");
+  const exactSharedEntities = el("exactSharedEntities");
+  const knnSharedEntities = el("knnSharedEntities");
   const articleBody = el("articleBody");
 
   const scoreGrid = el("scoreGrid");
@@ -1406,12 +1464,66 @@
     return escapeHtml(before) + '<mark class="evidence">' + escapeHtml(match) + "</mark>" + escapeHtml(after);
   }
 
+  // The NER pipeline emits a bare "None of the above" sentinel when no
+  // ontology match was found — never show those.
+  const ENTITY_PLACEHOLDER = "none of the above";
+
+  // Query entities arrive as "mondo:0005027||epilepsy (seizure disorder)";
+  // shared entities arrive already split into {id, name}.
+  function parseEntity(entry) {
+    if (!entry) return null;
+    if (typeof entry === "object") {
+      const name = entry.name || entry.id || "";
+      return name ? { id: entry.id || "", name } : null;
+    }
+    const sep = String(entry).indexOf("||");
+    return sep === -1
+      ? { id: "", name: String(entry) }
+      : { id: entry.slice(0, sep), name: entry.slice(sep + 2) };
+  }
+
+  function normalizeEntities(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const entry of list) {
+      const ent = parseEntity(entry);
+      if (!ent || ent.name.trim().toLowerCase() === ENTITY_PLACEHOLDER) continue;
+      const key = ent.id || ent.name;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(ent);
+    }
+    return out;
+  }
+
+  // Renders into `container`; hides it entirely when there is nothing to show
+  // and `emptyText` is omitted.
+  function renderPillRow(container, label, entities, className, emptyText) {
+    if (!entities.length && !emptyText) {
+      container.style.display = "none";
+      container.innerHTML = "";
+      return;
+    }
+    container.style.display = "flex";
+    const pills = entities.length
+      ? entities.map((ent) =>
+          `<span class="pill ${className}" title="${escapeHtml(ent.id ? ent.id + " — " + ent.name : ent.name)}">${escapeHtml(ent.id ? ent.id + " — " + ent.name : ent.name)}</span>`
+        ).join("")
+      : `<span class="pill-none">${escapeHtml(emptyText)}</span>`;
+    container.innerHTML =
+      (label ? `<span class="pill-row-label">${escapeHtml(label)}</span>` : "") + pills;
+  }
+
   function renderCurrent() {
     if (!items.length) {
       needText.textContent = "";
       needTarget.textContent = "";
       needSourceId.textContent = "";
       rawQuoteWrap.style.display = "none";
+      needEntities.style.display = "none";
+      exactSharedEntities.style.display = "none";
+      knnSharedEntities.style.display = "none";
       articleTitle.textContent = "";
       articleMeta.textContent = "";
       articleBody.innerHTML = "";
@@ -1440,6 +1552,8 @@
     } else {
       needTarget.style.display = "none";
     }
+    renderPillRow(needEntities, "Query entities", normalizeEntities(rec.entities_reranked), "entity");
+
     if (rec.raw_quote) {
       rawQuoteWrap.style.display = "block";
       rawQuoteText.textContent = rec.raw_quote;
@@ -1465,6 +1579,11 @@
         : ' <span class="cites-badge no">does not cite source article</span>';
     }
     articleMeta.innerHTML = escapeHtml(metaText) + citesBadge;
+
+    renderPillRow(exactSharedEntities, "Exact shared entities",
+      normalizeEntities(cand.exact_shared_entities), "entity", "none");
+    renderPillRow(knnSharedEntities, "KNN shared entities",
+      normalizeEntities(cand.knn_shared_entities), "entity", "none");
 
     if (article) {
       articleTitle.textContent = article.title || "(untitled)";
