@@ -9,10 +9,10 @@ import json
 import re
 from pathlib import Path
 
-HERE = Path(__file__).parent
-MEDCPT_RESULTS = HERE / "medcpt_results_gold_standard_judge_entities.json"
-CORPUS = HERE / "corpus-2022-2026-bel-indented.json"
-OUT = HERE / "medcpt_results_gold_standard_judge_shared_entities.json"
+DATA = Path(__file__).resolve().parent.parent / "data"
+MEDCPT_RESULTS = DATA / "medcpt_results_gold_standard_judge_entities.json"
+CORPUS = DATA / "corpus-2022-2026-bel-indented.json"
+OUT = DATA / "medcpt_results_gold_standard_judge_shared_entities.json"
 
 CANDIDATE_FIELD = "combined_results"
 TOP_K = 5  # how many KNN neighbours per entity to consider a match against

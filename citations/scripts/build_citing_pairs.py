@@ -8,10 +8,14 @@ Output:  citing_pairs.json
 
 import json
 from collections import defaultdict
+from pathlib import Path
 
-CORPUS = "ignor-corpus-2022-2026-sections-with-references.jsonl"
-RESULTS = "medcpt_results_gold_standard_judge.json"
-OUT = "citing_pairs.json"
+REPO = Path(__file__).resolve().parents[2]
+DATA = REPO / "citations" / "data"
+
+CORPUS = DATA / "ignor-corpus-2022-2026-sections-with-references.jsonl"
+RESULTS = REPO / "medcpt_results_gold_standard_judge.json"
+OUT = DATA / "citing_pairs.json"
 FIELDS = ["combined_results", "results", "bm25_results"]
 
 # --- corpus: article_id -> title / pub_date / reference set -------------------
@@ -87,8 +91,8 @@ payload = {
         "the query was derived from (candidate.references contains "
         "source_article_id)."
     ),
-    "results_file": RESULTS,
-    "corpus_file": CORPUS,
+    "results_file": RESULTS.name,
+    "corpus_file": CORPUS.name,
     "n_pairs": len(out_pairs),
     "n_source_articles": len({p["source_article_id"] for p in out_pairs}),
     "n_query_records_total": len(records),
