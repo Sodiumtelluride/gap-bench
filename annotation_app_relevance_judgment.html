@@ -349,6 +349,17 @@
     color: var(--muted);
     box-shadow: inset 0 0 0 1px var(--line);
   }
+  .pill a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .pill a:hover { text-decoration: underline; }
+  .pill.unidentified {
+    background: transparent;
+    color: var(--faint);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-style: italic;
+  }
   .pill.exact {
     background: var(--teal-tint);
     color: var(--teal-ink);
@@ -1497,6 +1508,37 @@
     return out;
   }
 
+  // Entities with an ontology ID show "id — name" and link out to OLS;
+  // unidentified ones are just a bare name, so they get their own muted style.
+  function pillMarkup(ent, className) {
+    if (!ent.id) {
+      return `<span class="pill unidentified" title="${escapeHtml(ent.name)}">${escapeHtml(ent.name)}</span>`;
+    }
+    const text = ent.id + " — " + ent.name;
+    return `<span class="pill ${className}" title="${escapeHtml(text)}">`
+      + `<a href="https://www.ebi.ac.uk/ols/search?q=${encodeURIComponent(ent.id)}"`
+      + ` target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a></span>`;
+  }
+
+  // Identified (split into id + name) first, then unidentified bare names.
+  function queryEntities(rec) {
+    let identified = normalizeEntities(rec.identified_query_entities);
+    if (!identified.length) {
+      // Older files carry only the raw "id||name" list.
+      identified = normalizeEntities(rec.entities_reranked);
+    }
+    const seen = new Set();
+    const unidentified = [];
+    for (const entry of rec.unidentified_query_entities || []) {
+      // Deliberately not split — these have no "||", the whole string is a name.
+      const name = String(entry || "").trim();
+      if (!name || name.toLowerCase() === ENTITY_PLACEHOLDER || seen.has(name)) continue;
+      seen.add(name);
+      unidentified.push({ id: "", name });
+    }
+    return identified.concat(unidentified);
+  }
+
   // Renders into `container`; hides it entirely when there is nothing to show
   // and `emptyText` is omitted.
   function renderPillRow(container, label, entities, className, emptyText) {
@@ -1507,9 +1549,7 @@
     }
     container.style.display = "flex";
     const pills = entities.length
-      ? entities.map((ent) =>
-          `<span class="pill ${className}" title="${escapeHtml(ent.id ? ent.id + " — " + ent.name : ent.name)}">${escapeHtml(ent.id ? ent.id + " — " + ent.name : ent.name)}</span>`
-        ).join("")
+      ? entities.map((ent) => pillMarkup(ent, className)).join("")
       : `<span class="pill-none">${escapeHtml(emptyText)}</span>`;
     container.innerHTML =
       (label ? `<span class="pill-row-label">${escapeHtml(label)}</span>` : "") + pills;
@@ -1552,7 +1592,7 @@
     } else {
       needTarget.style.display = "none";
     }
-    renderPillRow(needEntities, "Query entities", normalizeEntities(rec.entities_reranked), "entity");
+    renderPillRow(needEntities, "Query entities", queryEntities(rec), "entity");
 
     if (rec.raw_quote) {
       rawQuoteWrap.style.display = "block";

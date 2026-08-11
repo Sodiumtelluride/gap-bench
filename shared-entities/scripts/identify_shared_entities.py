@@ -2,7 +2,7 @@
 
 Reads the judged results and the NER'd corpus, matches entities on their
 canonical ontology ID (mondo:/hp:/pr:/...), and writes a `shared_entities`
-list onto every candidate plus a `query_entities` list onto every record.
+list onto every candidate plus a `query_entities_reranked_reranked` list onto every record.
 """
 
 import json
@@ -51,41 +51,55 @@ def main():
     corpus = json.loads(CORPUS.read_text())
 
     article_knn = {str(a["article_id"]): knn_entity_lists(a) for a in corpus}
-    article_entities = {
+    article_entities_reranked = {
         str(a["article_id"]): set(a.get("entities_reranked") or []) for a in corpus
     }
 
     tagged = missing = 0
     for rec in results:
         query_knn = knn_entity_lists(rec)
-        query_entities = rec.get("entities_reranked") or []
+        query_entities_reranked = rec.get("entities_reranked") or []
         for cand in rec.get(CANDIDATE_FIELD) or []:
             aid = str(cand["article_id"])
             cand["exact_shared_entities"] = []
             cand["knn_shared_entities"] = []
 
-            if aid not in article_entities:
+            if aid not in article_entities_reranked:
                 missing += 1
                 continue
 
-            abstract_entities = article_entities[aid]
+            abstract_entities = article_entities_reranked[aid]
             skipped_indexes = set()
-            for i, entity in enumerate(query_entities):
+            for i, entity in enumerate(query_entities_reranked):
                 if entity == "None of the above":
                     continue
                 if entity in abstract_entities:
                     skipped_indexes.add(i)
-                    cand["exact_shared_entities"].append(split_entity(entity))
+                    query_span_name = rec.get("entities", [])[i]
+                    query_id = split_entity(entity)["id"]
+                    cand["exact_shared_entities"].append({"id": query_id, "name": query_span_name})
 
             for i, (q_entity, q_ids) in enumerate(query_knn):
                 if i in skipped_indexes or not q_ids or q_entity == "None of the above":
                     continue
                 for _, a_ids in article_knn.get(aid, ()):
                     if set(q_ids) & set(a_ids):
-                        cand["knn_shared_entities"].append(split_entity(q_entity))
+                        query_span_name = rec.get("entities", [])[i]
+                        query_id = split_entity(q_entity)["id"]
+                        cand["knn_shared_entities"].append({"id": query_id, "name": query_span_name})
                         break
-
             tagged += 1
+
+        unidentified_query_entries = []
+        identified_query_entities = []
+        for i, entity in enumerate(rec.get("entities", [])):
+            if query_entities_reranked[i] == "None of the above":
+                unidentified_query_entries.append(entity)
+            else:
+                identified_query_entities.append({"id": split_entity(query_entities_reranked[i])["id"], "name": entity})
+        rec["unidentified_query_entities"] = unidentified_query_entries
+        rec["identified_query_entities"] = identified_query_entities
+
 
     OUT.write_text(json.dumps(results, indent=2))
     print(f"tagged {tagged} candidates, {missing} not found in corpus -> {OUT.name}")
