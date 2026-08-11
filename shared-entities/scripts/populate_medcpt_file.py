@@ -6,7 +6,7 @@ DATA = REPO / "shared-entities" / "data"
 
 # Enter the medcpt file you want to be modified here. A bare filename is read
 # from shared-entities/data/; an absolute path is used as-is.
-YOUR_MEDCPT_FILE = DATA / "medcpt_results_gold_standard_judge.json" 
+YOUR_MEDCPT_FILE = DATA / "" 
 SHARED_ENTITIES_FILE = DATA / "medcpt_results_gold_standard_judge_shared_entities.json"
 
 with open(YOUR_MEDCPT_FILE, "r") as f:
