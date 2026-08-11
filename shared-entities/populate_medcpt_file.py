@@ -2,8 +2,7 @@ import json
 
 # enter the medcpt file you want to be modified here 
 YOUR_MEDCPT_FILE = ""
-# enter the medcpt_results_gold_standard_judge_shared_entities.json file here
-SHARED_ENTITIES_FILE = ""
+SHARED_ENTITIES_FILE = "shared-entities/medcpt_results_gold_standard_judge_shared_entities.json"
 
 with open(YOUR_MEDCPT_FILE, "r") as f:
     medcpt_results = json.load(f)
