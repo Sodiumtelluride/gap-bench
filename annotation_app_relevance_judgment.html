@@ -1227,6 +1227,46 @@
     return Array.isArray(recB.references) && recB.references.includes(keyA);
   }
 
+  // Two accepted article formats:
+  //   1. JSONL, one chunk per line, reassembled by block_index (buildCorpus)
+  //   2. a single JSON object of article_id -> {title, abstract, pub_date}
+
+
+  function buildCorpusFromMapping(mapping) {
+    const result = new Map();
+    for (const [aid, rec] of Object.entries(mapping)) {
+      if (!rec || typeof rec !== "object") continue;
+      const pubDate = rec.pub_date || rec.pubDate || "";
+      const references = Array.isArray(rec.references) ? rec.references.map(String) : [];
+      result.set(String(aid), {
+        title: rec.title || "",
+        abstract: rec.abstract || "",
+        pubDate,
+        year: rec.year || extractYear(pubDate),
+        references,
+      });
+    }
+    return result;
+  }
+
+  // Picks a parser based on what the file actually contains, so the same
+  // "Open articles file…" button accepts either format.
+  function parseArticlesFile(text) {
+    const trimmed = text.trimStart();
+    if (trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return buildCorpusFromMapping(parsed);
+        }
+      } catch (e) {
+        // Not a single JSON object — fall through to the JSONL reader, which
+        // handles a file whose first line merely happens to start with "{".
+      }
+    }
+    return buildCorpus(text);
+  }
+
   function buildCorpus(text) {
     const chunksByArticle = new Map();
     const titles = new Map();
@@ -1429,7 +1469,7 @@
     const file = e.target.files[0];
     if (!file) return;
     const text = await file.text();
-    corpus = buildCorpus(text);
+    corpus = parseArticlesFile(text);
     articlesStatus.textContent = `${file.name} (${corpus.size} articles)`;
     articlesStatus.title = file.name;
     loadArticlesBtn.classList.add("loaded");

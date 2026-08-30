@@ -10,16 +10,16 @@ OUT = DATA / "ignor-corpus-2022-2026-sections-with-references.jsonl"
 EMAIL = "gelfandnat@gmail.com"
 
 
-# Function to fetch citing articles and count the citations
+
+# Function to fetch the articles this paper cites
 def fetch_citing_articles_and_count(pmid, email):
     Entrez.email = email  # Set your email for NCBI API usage
     try:
-        # Fetch the articles citing the input PMID
         handle = Entrez.elink(dbfrom="pubmed", id=pmid, linkname="pubmed_pubmed_refs")
         records = Entrez.read(handle)
         handle.close()
 
-        # Extract PMIDs of the citing articles
+        # Extract PMIDs of the articles that the given PMID cites
         if not records[0]["LinkSetDb"]:
             print(f"No citing articles found for PMID {pmid}")
             return []
